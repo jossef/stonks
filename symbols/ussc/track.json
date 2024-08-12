@@ -1,0 +1,7 @@
+{
+  "id": "USSC",
+  "type": "etf",
+  "source": "yahoo_finance",
+  "symbol": "USSC.L",
+  "currency": "USD"
+}
