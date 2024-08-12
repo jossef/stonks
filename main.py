@@ -46,20 +46,27 @@ def main():
             symbol_price_date = datetime.datetime.strftime(symbol_price_date, '%Y-%m-%d')
 
         elif symbol_track_info['source'] == 'issa':
-            options = Options()
-            options.add_argument("--headless=new")
-            driver = webdriver.Chrome(options=options)
-            driver.get(f"https://maya.tase.co.il/fund/{symbol}")
-            driver.implicitly_wait(10)
-            for request in driver.requests:
-                if request.response:
-                    if request.url.startswith('https://mayaapi.tase.co.il/api/fund/details'):
-                        response = brotli.decompress(request.response.body)
-                        response = response.decode('utf-8')
-                        response = json.loads(response)
-                        symbol_price = response['SellPrice']
-                        symbol_price_date = response['RelevantDate']
-                        symbol_price_date = datetime.datetime.fromisoformat(symbol_price_date).strftime('%Y-%m-%d')
+            for _ in range(3):
+                if symbol_price:
+                    break
+
+                options = Options()
+                options.add_argument("--headless=new")
+                driver = webdriver.Chrome(options=options)
+                driver.get(f"https://maya.tase.co.il/fund/{symbol}")
+                driver.implicitly_wait(10)
+                for request in driver.requests:
+                    if request.response:
+                        if request.url.startswith('https://mayaapi.tase.co.il/api/fund/details'):
+                            response = brotli.decompress(request.response.body)
+                            response = response.decode('utf-8')
+                            response = json.loads(response)
+                            symbol_price = response['SellPrice']
+                            symbol_price_date = response['RelevantDate']
+                            symbol_price_date = datetime.datetime.fromisoformat(symbol_price_date).strftime('%Y-%m-%d')
+
+        if not symbol_price:
+            raise Exception(f'Failed to get price for {symbol}')
 
         with open(os.path.join(os.path.dirname(symbol_track_file_path), 'price'), 'w+') as f:
             f.write(f'{symbol_price}')
