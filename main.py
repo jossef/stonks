@@ -50,7 +50,7 @@ def main():
             options.add_argument("--headless=new")
             driver = webdriver.Chrome(options=options)
             driver.get(f"https://maya.tase.co.il/fund/{symbol}")
-
+            driver.implicitly_wait(10)
             for request in driver.requests:
                 if request.response:
                     if request.url.startswith('https://mayaapi.tase.co.il/api/fund/details'):
