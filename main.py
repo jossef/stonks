@@ -67,7 +67,7 @@ def main():
                             response = brotli.decompress(request.response.body)
                             response = response.decode('utf-8')
                             response = json.loads(response)
-                            symbol_price = response['SellPrice'] / 1000 # ILA -> ILS
+                            symbol_price = response['SellPrice'] / 100 # ILA -> ILS
                             symbol_price_date = response['RelevantDate']
                             symbol_price_date = datetime.datetime.fromisoformat(symbol_price_date).strftime('%Y-%m-%d')
 
@@ -75,7 +75,7 @@ def main():
                             response = brotli.decompress(request.response.body)
                             response = response.decode('utf-8')
                             response = json.loads(response)
-                            symbol_price = response['LastRate'] / 1000 # ILA -> ILS
+                            symbol_price = response['LastRate'] / 100 # ILA -> ILS
                             symbol_price_date = response['TradeDate']
                             symbol_price_date = datetime.datetime.strptime(symbol_price_date, "%d/%m/%Y").strftime('%Y-%m-%d')
  
