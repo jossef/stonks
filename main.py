@@ -56,7 +56,7 @@ def main():
 
                 if symbol_track_info['type'] == 'etf':
                     url = f"https://maya.tase.co.il/foreignetf/{symbol}"
-                else
+                else:
                     url = f"https://maya.tase.co.il/fund/{symbol}"
 
                 driver.get(url)
