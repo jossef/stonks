@@ -30,6 +30,9 @@ jobs:
         run: |
           python3 main.py
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          commit_message: "feat: updating prices"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          cname: stonks.jossef.com
