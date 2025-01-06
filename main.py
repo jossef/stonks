@@ -66,12 +66,13 @@ def main():
                 symbol_price_date = datetime.datetime.strftime(symbol_price_date, '%Y-%m-%d')
 
             elif symbol_track_info['source'] == 'issa':
-                for _ in range(3):
+                for _ in range(10):
                     if symbol_price:
                         break
 
                     options = Options()
                     options.add_argument("--headless=new")
+                    options.add_argument(f"--window-size=1920,980")
                     driver = webdriver.Chrome(options=options)
 
                     if symbol_track_info['type'] == 'etf':
@@ -80,7 +81,7 @@ def main():
                         url = f"https://maya.tase.co.il/fund/{symbol}"
 
                     driver.get(url)
-                    driver.implicitly_wait(10)
+                    driver.implicitly_wait(30)
                     for request in driver.requests:
                         if request.response:
                             if request.url.startswith('https://mayaapi.tase.co.il/api/fund/details'):
