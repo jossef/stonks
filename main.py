@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 import os
+import time
 import brotli
 import requests
 import yfinance as yf
@@ -66,7 +67,7 @@ def main():
                 symbol_price_date = datetime.datetime.strftime(symbol_price_date, '%Y-%m-%d')
 
             elif symbol_track_info['source'] == 'issa':
-                for _ in range(10):
+                for attempt in range(1, 10):
                     if symbol_price:
                         break
 
@@ -81,7 +82,8 @@ def main():
                         url = f"https://maya.tase.co.il/he/funds/mutual-funds/{symbol}"
 
                     driver.get(url)
-                    driver.implicitly_wait(30)
+                    time.sleep(30 * attempt)
+                    driver.implicitly_wait(30 * attempt)
                     for request in driver.requests:
                         if request.response:
                             if request.url.startswith('https://api.tase.co.il/api/company/securitydata'):
