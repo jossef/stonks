@@ -72,29 +72,29 @@ def main():
 
                     options = Options()
                     options.add_argument("--headless=new")
-                    options.add_argument(f"--window-size=1920,980")
+                    options.add_argument("--window-size=1920,980")
                     driver = webdriver.Chrome(options=options)
 
                     if symbol_track_info['type'] == 'etf':
-                        url = f"https://maya.tase.co.il/foreignetf/{symbol}"
+                        url = f"https://market.tase.co.il/he/market_data/security/{symbol}"
                     else:
-                        url = f"https://maya.tase.co.il/fund/{symbol}"
+                        url = f"https://maya.tase.co.il/he/funds/mutual-funds/{symbol}"
 
                     driver.get(url)
                     driver.implicitly_wait(30)
                     for request in driver.requests:
                         if request.response:
-                            if request.url.startswith('https://mayaapi.tase.co.il/api/fund/details'):
-                                response = get_issa_rest_api_response(request)
-                                symbol_price = response['SellPrice'] / 100  # ILA -> ILS
-                                symbol_price_date = response['RelevantDate']
-                                symbol_price_date = datetime.datetime.fromisoformat(symbol_price_date).strftime('%Y-%m-%d')
-
-                            if request.url.startswith('https://mayaapi.tase.co.il/api/foreignetf/tradedata'):
+                            if request.url.startswith('https://api.tase.co.il/api/company/securitydata'):
                                 response = get_issa_rest_api_response(request)
                                 symbol_price = response['LastRate'] / 100  # ILA -> ILS
                                 symbol_price_date = response['TradeDate']
                                 symbol_price_date = datetime.datetime.strptime(symbol_price_date, "%d/%m/%Y").strftime('%Y-%m-%d')
+
+                            if request.url.startswith('https://maya.tase.co.il/api/v1/funds/mutual'):
+                                response = get_issa_rest_api_response(request)
+                                symbol_price = response['purchasePrice'] / 100  # ILA -> ILS
+                                symbol_price_date = response['ratesAsOf']
+                                symbol_price_date = datetime.datetime.strptime(symbol_price_date, "%Y-%m-%d").strftime('%Y-%m-%d')
 
             if not symbol_price:
                 raise Exception(f'Failed to get price for {symbol}')
