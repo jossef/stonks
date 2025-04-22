@@ -1,139 +1,86 @@
-import datetime
-import glob
-import json
+#!/usr/bin/env python3
+"""
+Stonks - A tool for tracking stock and fund prices from various sources.
+
+This script fetches financial data from different sources and makes it available
+for use in Google Sheets or other applications.
+"""
 import logging
-import os
-import time
-import brotli
-import requests
-import yfinance as yf
-import chromedriver_autoinstaller
-from selenium.webdriver.chrome.options import Options
-from seleniumwire import webdriver
+import sys
+from typing import List
 
-logging.getLogger("seleniumwire").setLevel(logging.ERROR)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from stonks.config import Config
+from stonks.data_fetcher import get_data_fetcher
+from stonks.models import SymbolConfig
+from stonks.storage import save_symbol_data
+from stonks.utils import setup_logging, load_symbol_configs
 
-chromedriver_autoinstaller.install()
+def main() -> None:
+    """
+    Main entry point for the Stonks application.
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-SYMBOLS_DIR = os.path.join(SCRIPT_DIR, 'symbols')
-DIST_DIR = os.path.join(SCRIPT_DIR, 'dist')
+    Reads symbol configurations, fetches price data, and saves the results.
+    """
+    # Setup logging
+    setup_logging()
+    logger = logging.getLogger(__name__)
 
+    try:
+        # Initialize configuration
+        config = Config()
 
-def get_latest_user_agent(operating_system='windows', browser='chrome'):
-    url = f'https://jnrbsn.github.io/user-agents/user-agents.json'
-    r = requests.get(url)
-    r.raise_for_status()
-    user_agents = r.json()
+        # Load symbol configurations
+        logger.info(f"Reading symbols *.json files in {config.symbols_dir} ...")
+        symbol_configs = load_symbol_configs(config.symbols_dir)
 
-    for user_agent in user_agents:
-        if operating_system.lower() in user_agent.lower() and browser.lower() in user_agent.lower():
-            return user_agent
+        if not symbol_configs:
+            logger.error("No symbol configurations found. Exiting.")
+            sys.exit(1)
 
-    return None
+        # Process each symbol
+        for symbol_config in symbol_configs:
+            process_symbol(symbol_config, config)
 
+        logger.info("All symbols processed successfully.")
 
-def main():
-    logging.info(f"reading symbols *.json files in {SYMBOLS_DIR} ...")
-    for symbol_track_file_path in glob.glob(os.path.join(SYMBOLS_DIR, '*.json'), recursive=True):
-        logging.info(f"processing {symbol_track_file_path} ...")
+    except Exception as e:
+        logger.exception(f"An error occurred during execution: {e}")
+        sys.exit(1)
 
-        try:
-            with open(symbol_track_file_path) as f:
-                symbol_track_info = json.load(f)
+def process_symbol(symbol_config: SymbolConfig, config: Config) -> None:
+    """
+    Process a single symbol configuration.
 
-            symbol_price = 0
-            symbol_price_date = ''
+    Args:
+        symbol_config: The symbol configuration to process
+        config: The application configuration
+    """
+    logger = logging.getLogger(__name__)
 
-            symbol_id = symbol_track_info['id']
-            symbol = symbol_track_info['symbol']
-            currency = symbol_track_info['currency']
-            user_agent_header = get_latest_user_agent(operating_system='windows', browser='chrome')
+    try:
+        logger.info(f"Processing symbol {symbol_config.id} ({symbol_config.symbol})...")
 
-            if symbol_track_info['source'] == 'justetf':
-                url = f'https://www.justetf.com/api/etfs/{symbol}/quote?locale=en&currency={currency}&isin={symbol}'
-                r = requests.get(url, headers={'User-Agent': user_agent_header, 'Accept': 'application/json'})
-                r.raise_for_status()
-                symbol_info = r.json()
-                symbol_price = symbol_info['latestQuote']['raw']
-                symbol_price_date = symbol_info['latestQuoteDate']
+        # Get the appropriate data fetcher for this symbol
+        data_fetcher = get_data_fetcher(symbol_config)
 
-            elif symbol_track_info['source'] == 'yahoo_finance':
-                ticker_yahoo = yf.Ticker(symbol)
-                symbol_info = ticker_yahoo.history()
-                symbol_price = symbol_info['Close'].iloc[-1]
-                symbol_price_date = symbol_info['Close'].index[-1]
-                symbol_price_date = datetime.datetime.strftime(symbol_price_date, '%Y-%m-%d')
+        # Fetch the price data
+        symbol_data = data_fetcher.fetch_data()
 
-            elif symbol_track_info['source'] == 'issa':
-                for attempt in range(1, 10):
-                    if symbol_price:
-                        break
+        if not symbol_data.price:
+            raise ValueError(f"Failed to get price for {symbol_config.symbol}")
 
-                    options = Options()
-                    options.add_argument("--headless=new")
-                    options.add_argument("--window-size=1920,980")
-                    driver = webdriver.Chrome(options=options)
+        # Save the data
+        save_symbol_data(symbol_data, config.dist_dir)
 
-                    if symbol_track_info['type'] == 'etf':
-                        url = f"https://market.tase.co.il/he/market_data/security/{symbol}"
-                    else:
-                        url = f"https://maya.tase.co.il/he/funds/mutual-funds/{symbol}"
+        logger.info(
+            f'Symbol "{symbol_config.id}" update completed. '
+            f'Price: {symbol_data.price} {symbol_config.currency} '
+            f'Date: {symbol_data.price_date}'
+        )
 
-                    driver.get(url)
-                    time.sleep(30 * attempt)
-                    driver.implicitly_wait(30 * attempt)
-                    for request in driver.requests:
-                        if request.response:
-                            if request.url.startswith('https://api.tase.co.il/api/company/securitydata'):
-                                response = get_issa_rest_api_response(request)
-                                symbol_price = response['LastRate'] / 100  # ILA -> ILS
-                                symbol_price_date = response['TradeDate']
-                                symbol_price_date = datetime.datetime.strptime(symbol_price_date, "%d/%m/%Y").strftime('%Y-%m-%d')
+    except Exception as e:
+        logger.error(f"Failed to process symbol {symbol_config.id}: {e}")
+        # Continue processing other symbols instead of raising the exception
 
-                            if request.url.startswith('https://maya.tase.co.il/api/v1/funds/mutual'):
-                                response = get_issa_rest_api_response(request)
-                                symbol_price = response['purchasePrice'] / 100  # ILA -> ILS
-                                symbol_price_date = response['ratesAsOf']
-                                symbol_price_date = datetime.datetime.strptime(symbol_price_date, "%Y-%m-%d").strftime('%Y-%m-%d')
-
-            if not symbol_price:
-                raise Exception(f'Failed to get price for {symbol}')
-
-            symbol_dist_dir = os.path.join(DIST_DIR, symbol_id)
-            os.makedirs(symbol_dist_dir, exist_ok=True)
-            symbol_track_info['price'] = symbol_price
-            symbol_track_info['price_date'] = symbol_price_date
-
-            with open(os.path.join(symbol_dist_dir, 'price'), 'w+') as f:
-                f.write(str(symbol_price))
-
-            with open(os.path.join(symbol_dist_dir, 'currency'), 'w+') as f:
-                f.write(currency)
-
-            with open(os.path.join(symbol_dist_dir, 'date'), 'w+') as f:
-                f.write(symbol_price_date)
-
-            with open(os.path.join(symbol_dist_dir, 'info.json'), 'w+') as f:
-                json.dump(symbol_track_info, f)
-
-            logging.info(f'symbol "{symbol_id}" update completed. price: {symbol_price} {currency} date: {symbol_price_date}')
-
-        except Exception as e:
-            logging.exception(f'Failed to process {symbol_track_file_path}')
-            raise
-
-
-def get_issa_rest_api_response(request):
-    if 400 <= request.response.status_code < 600:
-        raise Exception(f'Status code {request.response.status_code}')
-
-    response = brotli.decompress(request.response.body)
-    response = response.decode('utf-8')
-    response = json.loads(response)
-    return response
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
