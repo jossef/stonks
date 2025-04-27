@@ -1,122 +1,126 @@
-# סטונקס!
+# Stonks
 
-![image](https://github.com/user-attachments/assets/e0089ccf-7a6d-4d85-808e-b90e7eefb4c0)
+A Python application for tracking financial instrument prices from various sources.
 
-## מה זה הפרויקט הזה?
+## Features
 
-אם אתם רוצים דרך קלה ונוחה לעקוב אחרי מחירים של מניות וקרנות בתוך Google Sheets מעבר למה שGoogle Finance תומך בו – זה הכלי בשבילכם. תעשו Fork, תתאימו את הקבצים למה שמעניין אתכם, ותנו לזה לרוץ אוטומטית. 
+- Support for multiple data sources:
+  - JustETF
+  - Yahoo Finance
+  - Tel Aviv Stock Exchange (TASE)
+- Configurable symbol tracking
+- Automatic price updates
+- Data persistence
+- Robust error handling
+- Type-safe implementation
 
-בשביל להמחיש כמה זה נח, יצרתי גיליון לדוגמה ב-Google Sheets:  
-https://docs.google.com/spreadsheets/d/1bo6MEyI9WHOUDB5q21C4e9LLOmTX-fih-JIJPEGJE_Y/edit?usp=sharing
+## Project Structure
 
-![image](https://github.com/user-attachments/assets/cddf7155-e575-46d2-9929-4c781bfcdd91)
+```
+stonks/
+├── src/
+│   └── stonks/
+│       ├── __init__.py
+│       ├── app.py
+│       ├── config.py
+│       ├── models.py
+│       ├── providers.py
+│       └── storage.py
+├── symbols/
+│   └── *.json
+├── dist/
+├── main.py
+├── requirements.txt
+└── README.md
+```
 
-⚠ **שימו לב**: אני לא יועץ פיננסי ואין פה המלצה להשקעה. נוצר לשימוש אישי. אני לא אחראי לכל הפסד כספי שעלול להיגרם כתוצאה משימוש בפרויקט הזה. השתמשו בו על אחריותכם בלבד.
+## Installation
 
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/stonks.git
+cd stonks
+```
 
-## איך מתחילים?
-אני עוקב רק אחרי המניות שמעניינות אותי. בכדי שתיצרו עוקב מניות כזה משל עצמכם, תתחילו מליצור חשבון בGitHub ואז:
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-### לעשות Fork
-   - תלחצו על כפתור "Fork" של הפרוייקט הזה בכדי להעתיק את הריפו לחשבון שלכם.
-   - תוודאו שGitHub Actions מופעל בהגדרות (אחרת לא יהיה משהו שיריץ את הסקריפט)
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-### להגדיר את המניות/קרנות שאתם רוצים לעקוב אחריהן
-   - יש תיקייה בשם `symbols/` עם קבצי JSON שאני אישית עוקב אחריהם. כל קובץ מייצג נכס פיננסי אחד.
-   - תשנו או תוסיפו קבצים בהתאם למה שמעניין אתכם. הסבר על המבנה בהמשך
+## Configuration
 
-### אופציונלי - להריץ מקומית ולבדוק שזה עובד
-   - תריצו את הסקריפט:
-     ```sh
-     python main.py
-     ```
-   - אם אין שגיאות, הנתונים יישמרו בתיקייה `dist/`.
-   - אם יש שגיאות - יכול להיות שמשהו נשבר ושמצאתם באג. אשמח לתיקון בחזרה במידה ונתקלתם בבאג
-
-### להריץ את זה באופן אוטומטי בגיטהאב
-   - הסקריפט רץ כל שעה דרך GitHub Actions 
-   - אם אתם רוצים להפעיל אותו ידנית, אפשר לעשות את זה דרך הממשק .
-
-![image](https://github.com/user-attachments/assets/f533be7a-c72e-4958-9601-abef1a425973)
-
-
-## איך נראה קובץ סימבול (symbol)?
-
-כל קובץ JSON ב-`symbols/` מכיל מידע במבנה הזה:
-
-- **id** - המזהה של הסימבול בפרוייקט.
-- **type** - איזה סוג זה:
-  - `etf` - קרן סל.
-  - `caspit` - קרן כספית.
-- **source** - מאיפה הנתונים מגיעים:
-  - `justetf` - מאתר JustETF.
-  - `yahoo_finance` - מ-Yahoo Finance.
-  - `issa` - הבורסה הישראלית.
-- **symbol** - הקוד של הסימבול בבורסה.
-- **currency** - באיזה מטבע נסחר.
-
-### דוגמאות לקבצי סימבול
-#### קרן סל מ (Yahoo Finance ([iShares MSCI ACWI UCITS ETF USD (Acc)](https://finance.yahoo.com/quote/ISAC.L/)
+Symbol tracking is configured using JSON files in the `symbols` directory. Each file should have the following structure:
 
 ```json
 {
-  "id": "ISAC",
-  "type": "etf",
-  "source": "yahoo_finance",
-  "symbol": "ISAC.L",
-  "currency": "USD"
-}
-```
-#### קרן כספית ישראלית ([אנליסט (00) כספית](https://maya.tase.co.il/he/funds/mutual-funds/5121140?view=reports))
-```json
-{
-  "id": "5121140",
-  "type": "caspit",
-  "source": "issa",
-  "symbol": "5121140",
-  "currency": "ILS"
+    "id": "unique_symbol_id",
+    "symbol": "SYMBOL",
+    "currency": "USD",
+    "source": "yahoo_finance",
+    "type": "etf"  // Optional, used for TASE
 }
 ```
 
-## איפה מוצאים את הנתונים אחרי שזה רץ?
+Supported sources:
+- `justetf`: JustETF API
+- `yahoo_finance`: Yahoo Finance API
+- `issa`: Tel Aviv Stock Exchange
 
-אחרי שהריפו פרוס ב-GitHub Pages והסקריפט סיים לרוץ, הנתונים הם בצורת קבצים במנה תיקיות היררכי. אפשר לגשת לנתונים ישירות:
-- מחיר עדכני: `https://<username>.github.io/stonks/<symbol id>/price`
-- תאריך מחיר אחרון: `https://<username>.github.io/stonks/<symbol id>/date`
-- מטבע המסחר: `https://<username>.github.io/stonks/<symbol id>/currency`
-- קובץ JSON עם כל המידע: `https://<username>.github.io/stonks/<symbol id>/info.json`
+## Usage
 
-**דוגמה** 
-- סימבול: `ZPRX`
-- מחיר נוכחי: `https://jossef.github.io/stonks/ZPRX/price`
-- תאריך עדכון מחיר: `https://jossef.github.io/stonks/ZPRX/date`
-
-
-## איך משלבים את זה ב-Google Sheets?
-
-אפשר למשוך את הנתונים ישירות ל-Google Sheets עם `IMPORTDATA`:
-```excel
-=IMPORTDATA("https://jossef.github.io/stonks/ZPRX/price")
-```
-או לבנות את ה-URL לפי הסימבול שבטבלה:
-```excel
-=IMPORTDATA(CONCATENATE("https://jossef.github.io/stonks/", A2, "/price"))
+Run the application:
+```bash
+python main.py
 ```
 
-> **חשוב לדעת**: גוגל עלול להציג אזהרת אבטחה. פשוט תלחצו "Allow Access" כדי לאפשר טעינת נתונים חיצוניים.
+The application will:
+1. Read all symbol configuration files from the `symbols` directory
+2. Fetch current prices from the configured sources
+3. Save the results in the `dist` directory
 
-![image](https://github.com/user-attachments/assets/6a631429-9418-4962-9d5a-3f8910334d9c)
+## Development
 
-## רקע בהרחבה
-מסתבר שלעקוב אחרי מניות ותעודות סל **שלא נסחרות בארה"ב** בתוך Google Sheets זה לא דבר שנתמך במלואו. Google Finance לא מכסה את כל מה שמעניין אותי ועוד משקיעים ישראלים רבים. 
+### Code Style
 
-בעוד שחלק מהמקורות המידע הקיימים מציבים הגבלות על איסוף נתונים באופן ישיר מתוך Google Sheets (כמו אתר הבורסה לניירות ערך תל אביב שבנו בובה של API אבל רק לאתר שלהם מותר לקרוא לו) - בניתי פתרון משלי שפותח דפדפן, גולש אל מקור המידע, טוען את האתר, ומחלץ משם את הנתון המעניין. כל זה בחינם לגמרי בחסות GitHub.
+The project uses:
+- Black for code formatting
+- Flake8 for linting
+- MyPy for type checking
 
-הפרוייקט הזה אוסף נתוני מניות וקרנות ממקורות שונים, מנרמל אותם ומשתמש בשירותי האירוח החינמיים של GitHub בשביל להנגיש לי את המידע בפשטות ובאחדות לגליון ה-Google Sheets שלי, בו אני מתעד את תיק ההשקעות שלי. 
+Run the development tools:
+```bash
+# Format code
+black src/
 
-הקוד בפרוייקט הזה הוא לא הכי יעיל. אבל הוא עובד, קל לתחזוקה והכי חשוב - ממש לא אכפת לי מזמן הריצה כי זה רץ ברקע על מחשוב חינמי של GitHub.
+# Run linter
+flake8 src/
 
-אם אתם רוצים דרך קלה ונוחה לעקוב אחרי מחירים של מניות וקרנות – זה הכלי בשבילכם. תעשו Fork, תתאימו את הקבצים למה שמעניין אתכם, ותנו לזה לרוץ אוטומטית. 
+# Run type checker
+mypy src/
+```
 
-🎯 שיהיה בהצלחה! 🚀
+### Testing
+
+Run tests with pytest:
+```bash
+pytest
+```
+
+## License
+
+MIT License
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 

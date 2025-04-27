@@ -1,7 +1,7 @@
+# Core dependencies
 yfinance==0.2.54
 selenium==4.23.1
 requests==2.32.3
 chromedriver-autoinstaller==0.6.4
 selenium-wire==5.1.0
-blinker==1.7.0
 brotlipy==0.7.0
