@@ -1,4 +1,4 @@
-yfinance==0.2.54
+yfinance==0.2.61
 selenium==4.23.1
 requests==2.32.3
 chromedriver-autoinstaller==0.6.4
